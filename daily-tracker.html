@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>stillbecoming · daily log</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0D1B2A; --card:#162233; --card2:#1C2D42; --text:#F0EDE6;
+    --muted:#7A8FA6; --coral:#E8705A; --sage:#7DAB8B; --gold:#D4A85C;
+    --lavender:#9B8EC4; --sky:#5BA4CF; --border:rgba(240,237,230,0.08);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; max-width:430px; margin:0 auto; padding-bottom:84px; }
+  h1,h2,h3 { font-family:'Syne',sans-serif; }
+
+  /* NAV */
+  .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; background:var(--card); border-top:1px solid var(--border); display:flex; z-index:100; }
+  .nav-btn { flex:1; padding:10px 4px 14px; display:flex; flex-direction:column; align-items:center; gap:3px; border:none; background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:10px; cursor:pointer; transition:color .2s; }
+  .nav-btn.active { color:var(--coral); }
+  .nav-btn svg { width:22px; height:22px; }
+
+  /* PAGES */
+  .page { display:none; padding:20px 16px; }
+  .page.active { display:block; }
+
+  /* HEADER */
+  .page-header { margin-bottom:20px; }
+  .page-header h2 { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+  .page-header p { color:var(--muted); font-size:13px; margin-top:3px; }
+
+  /* DATE STRIP */
+  .date-strip { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:14px; padding:12px 16px; margin-bottom:20px; border:1px solid var(--border); }
+  .date-strip .date-label { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+  .date-strip .date-nav { background:var(--card2); border:none; color:var(--text); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+
+  /* SECTION CARD */
+  .section-card { background:var(--card); border-radius:18px; padding:18px; margin-bottom:14px; border:1px solid var(--border); }
+  .section-title { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .section-title .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .section-title h3 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; }
+
+  /* MEAL TIMING */
+  .meal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .meal-item { background:var(--card2); border-radius:12px; padding:12px; }
+  .meal-item label { font-size:11px; color:var(--muted); display:block; margin-bottom:6px; font-weight:500; letter-spacing:0.3px; }
+  .time-display { font-family:'DM Sans',sans-serif; font-size:18px; font-weight:600; color:var(--text); cursor:pointer; padding:2px 0; border-bottom:1px dashed rgba(240,237,230,0.15); min-height:28px; }
+  .time-display.empty { color:var(--muted); font-size:14px; font-weight:400; }
+
+  /* PORTION */
+  .portion-meal { background:var(--card2); border-radius:14px; padding:14px; margin-bottom:10px; }
+  .portion-meal:last-child { margin-bottom:0; }
+  .portion-meal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .portion-meal-name { font-size:13px; font-weight:600; }
+  .portion-size-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .p-btn { padding:6px 12px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12px; cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif; }
+  .p-btn.sel { color:white; border-color:transparent; }
+  .p-btn.sel.size-s { background:#5BA4CF; }
+  .p-btn.sel.size-m { background:#7DAB8B; }
+  .p-btn.sel.size-l { background:#E8705A; }
+  .portion-note { font-size:11px; color:var(--muted); line-height:1.5; }
+
+  /* TIME PICKER MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:300; align-items:flex-end; }
+  .modal-overlay.open { display:flex; }
+  .time-modal { background:var(--card); border-radius:22px 22px 0 0; padding:24px 20px 36px; width:100%; max-width:430px; margin:0 auto; }
+  .time-modal h4 { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:20px; text-align:center; }
+  .time-picker-row { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:24px; }
+  .spin-col { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .spin-col label { font-size:11px; color:var(--muted); }
+  .spin-btn { width:40px; height:40px; border-radius:10px; background:var(--card2); border:1px solid var(--border); color:var(--text); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .spin-val { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; min-width:56px; text-align:center; }
+  .ampm-col { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .ampm-btn { padding:10px 16px; border-radius:10px; border:1px solid var(--border); background:var(--card2); color:var(--muted); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
+  .ampm-btn.sel { background:var(--coral); color:white; border-color:var(--coral); }
+  .modal-confirm { width:100%; padding:14px; border-radius:14px; background:var(--coral); color:white; border:none; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; }
+  .modal-cancel { width:100%; padding:10px; border-radius:14px; background:transparent; color:var(--muted); border:none; font-family:'DM Sans',sans-serif; font-size:14px; cursor:pointer; margin-top:8px; }
+  .time-colon { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; }
+
+  /* SLEEP */
+  .sleep-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .sleep-block { background:var(--card2); border-radius:12px; padding:12px; }
+  .sleep-block label { font-size:11px; color:var(--muted); display:block; margin-bottom:6px; }
+  .sleep-hours-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(155,142,196,0.15); border-radius:30px; padding:8px 16px; margin-bottom:12px; }
+  .sleep-hours-pill .sh-num { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; color:var(--lavender); }
+  .sleep-hours-pill .sh-label { font-size:12px; color:var(--muted); }
+  .sleep-quality { display:flex; gap:6px; justify-content:space-between; }
+  .quality-btn { flex:1; padding:8px 4px; border-radius:10px; border:1px solid var(--border); background:var(--card2); color:var(--muted); font-size:11px; cursor:pointer; text-align:center; transition:all .15s; }
+  .quality-btn.selected { background:var(--lavender); color:white; border-color:var(--lavender); }
+
+  /* GADGET */
+  .gadget-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .gadget-label { font-size:13px; color:var(--muted); width:90px; flex-shrink:0; }
+  .gadget-input { flex:1; background:var(--card2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:9px 12px; outline:none; }
+  .gadget-input:focus { border-color:rgba(91,164,207,0.4); }
+  .gadget-input::placeholder { color:var(--muted); }
+
+  /* TEXT INPUTS */
+  .text-input { width:100%; background:var(--card2); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:12px 14px; outline:none; resize:none; transition:border-color .2s; }
+  .text-input:focus { border-color:rgba(232,112,90,0.4); }
+  .text-input::placeholder { color:var(--muted); }
+
+  /* SAVE */
+  .save-btn { width:100%; padding:15px; border-radius:14px; background:var(--coral); color:white; border:none; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px; transition:opacity .2s; }
+  .save-btn:active { opacity:0.85; }
+
+  /* HISTORY */
+  .history-empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .history-empty .emoji { font-size:48px; margin-bottom:12px; }
+  .log-entry { background:var(--card); border-radius:18px; padding:18px; margin-bottom:14px; border:1px solid var(--border); }
+  .log-entry-date { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--coral); margin-bottom:12px; }
+  .log-detail { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:13px; }
+  .log-detail .icon { font-size:16px; flex-shrink:0; }
+  .log-detail .val { color:var(--muted); line-height:1.5; }
+  .log-detail .val strong { color:var(--text); font-weight:500; }
+  .no-log { color:var(--muted); font-size:12px; font-style:italic; }
+
+  /* STATS */
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat-card { background:var(--card); border-radius:16px; padding:16px; border:1px solid var(--border); }
+  .stat-card .stat-label { font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.3px; }
+  .stat-card .stat-val { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; }
+  .streak-card { background:linear-gradient(135deg,#1C2D42,#243347); border-radius:18px; padding:20px; margin-bottom:14px; border:1px solid var(--border); display:flex; align-items:center; gap:16px; }
+  .streak-num { font-family:'Syne',sans-serif; font-size:48px; font-weight:800; color:var(--coral); line-height:1; }
+  .streak-info h3 { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
+  .streak-info p { font-size:13px; color:var(--muted); margin-top:2px; }
+  .avg-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .avg-row:last-child { border-bottom:none; padding-bottom:0; }
+  .avg-row .avg-label { color:var(--muted); }
+  .avg-row .avg-val { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--sage); color:white; padding:12px 24px; border-radius:30px; font-size:14px; font-weight:600; font-family:'Syne',sans-serif; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; z-index:400; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- TIME PICKER MODAL -->
+<div class="modal-overlay" id="time-modal-overlay" onclick="closeModalOutside(event)">
+  <div class="time-modal">
+    <h4 id="modal-title">set time</h4>
+    <div class="time-picker-row">
+      <div class="spin-col">
+        <label>HOUR</label>
+        <button class="spin-btn" onclick="spinHr(1)">▲</button>
+        <div class="spin-val" id="modal-hr">12</div>
+        <button class="spin-btn" onclick="spinHr(-1)">▼</button>
+      </div>
+      <div class="time-colon">:</div>
+      <div class="spin-col">
+        <label>MIN</label>
+        <button class="spin-btn" onclick="spinMin(1)">▲</button>
+        <div class="spin-val" id="modal-min">00</div>
+        <button class="spin-btn" onclick="spinMin(-1)">▼</button>
+      </div>
+      <div class="ampm-col">
+        <button class="ampm-btn sel" id="btn-am" onclick="setAmPm('AM')">AM</button>
+        <button class="ampm-btn" id="btn-pm" onclick="setAmPm('PM')">PM</button>
+      </div>
+    </div>
+    <button class="modal-confirm" onclick="confirmTime()">set time</button>
+    <button class="modal-cancel" onclick="closeModal()">cancel</button>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div id="page-log" class="page active">
+  <div class="page-header">
+    <h2>daily log</h2>
+    <p>track your day, one entry at a time</p>
+  </div>
+
+  <div class="date-strip">
+    <button class="date-nav" onclick="changeDate(-1)">‹</button>
+    <span class="date-label" id="date-label"></span>
+    <button class="date-nav" onclick="changeDate(1)">›</button>
+  </div>
+
+  <!-- FOOD TIMINGS -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--coral)"></div>
+      <h3>food timings</h3>
+    </div>
+    <div class="meal-grid">
+      <div class="meal-item">
+        <label>🌅 breakfast</label>
+        <div class="time-display empty" id="td-breakfast" onclick="openModal('td-breakfast','Breakfast time')">tap to set</div>
+      </div>
+      <div class="meal-item">
+        <label>☀️ lunch</label>
+        <div class="time-display empty" id="td-lunch" onclick="openModal('td-lunch','Lunch time')">tap to set</div>
+      </div>
+      <div class="meal-item">
+        <label>🍵 snacks</label>
+        <div class="time-display empty" id="td-snacks" onclick="openModal('td-snacks','Snacks time')">tap to set</div>
+      </div>
+      <div class="meal-item">
+        <label>🌙 dinner</label>
+        <div class="time-display empty" id="td-dinner" onclick="openModal('td-dinner','Dinner time')">tap to set</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOD PORTIONS -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--gold)"></div>
+      <h3>food portions</h3>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      A portion = roughly what fits in your cupped hand (about 1 cup / 150–200g). S = half a plate, M = a normal full plate, L = more than a full plate.
+    </p>
+    <div id="portions-wrap">
+      <!-- each meal block generated by JS -->
+    </div>
+  </div>
+
+  <!-- SLEEP -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--lavender)"></div>
+      <h3>sleep</h3>
+    </div>
+    <div class="sleep-row">
+      <div class="sleep-block">
+        <label>😴 slept at</label>
+        <div class="time-display empty" id="td-sleep" onclick="openModal('td-sleep','Bedtime')">tap to set</div>
+      </div>
+      <div class="sleep-block">
+        <label>☀️ woke at</label>
+        <div class="time-display empty" id="td-wake" onclick="openModal('td-wake','Wake up')">tap to set</div>
+      </div>
+    </div>
+    <div class="sleep-hours-pill" id="sleep-hours-pill" style="display:none">
+      <span class="sh-num" id="sleep-hrs-val">–</span>
+      <span class="sh-label">hrs sleep</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">how'd you sleep?</div>
+    <div class="sleep-quality">
+      <button class="quality-btn" onclick="selectQuality(this,'knocked out')">knocked out</button>
+      <button class="quality-btn" onclick="selectQuality(this,'decent')">decent</button>
+      <button class="quality-btn" onclick="selectQuality(this,'rough')">rough</button>
+      <button class="quality-btn" onclick="selectQuality(this,'broken')">broken</button>
+    </div>
+  </div>
+
+  <!-- GADGET -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--sky)"></div>
+      <h3>gadget use</h3>
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">📱 started at</span>
+      <div class="time-display empty" id="td-g-start" onclick="openModal('td-g-start','Gadget start')" style="flex:1;padding:9px 12px;background:var(--card2);border-radius:10px;font-size:14px;font-weight:500"></div>
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">🔒 last use</span>
+      <div class="time-display empty" id="td-g-end" onclick="openModal('td-g-end','Gadget last use')" style="flex:1;padding:9px 12px;background:var(--card2);border-radius:10px;font-size:14px;font-weight:500"></div>
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">📍 location</span>
+      <input type="text" id="g-location" class="gadget-input" placeholder="bedroom, kitchen, outside...">
+    </div>
+    <textarea id="g-notes" class="text-input" rows="2" placeholder="doom-scrolling? youtube? studying?" style="margin-top:4px"></textarea>
+  </div>
+
+  <!-- PHYSICAL ACTIVITY -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--sage)"></div>
+      <h3>physical activity</h3>
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">🏃 activity</span>
+      <input type="text" id="a-type" class="gadget-input" placeholder="walk, gym, dance, yoga...">
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">⏱ duration</span>
+      <input type="text" id="a-duration" class="gadget-input" placeholder="e.g. 30 mins">
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">📍 where</span>
+      <input type="text" id="a-location" class="gadget-input" placeholder="park, home, gym...">
+    </div>
+    <textarea id="a-notes" class="text-input" rows="2" placeholder="how did it feel?" style="margin-top:8px"></textarea>
+  </div>
+
+  <!-- HOBBY -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="dot" style="background:var(--gold)"></div>
+      <h3>hobby & me-time</h3>
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">🎨 did what</span>
+      <input type="text" id="h-type" class="gadget-input" placeholder="guitar, drawing, reels, dance...">
+    </div>
+    <div class="gadget-row">
+      <span class="gadget-label">⏱ how long</span>
+      <input type="text" id="h-duration" class="gadget-input" placeholder="e.g. 1 hr">
+    </div>
+    <textarea id="h-notes" class="text-input" rows="2" placeholder="mood? anything fun?" style="margin-top:8px"></textarea>
+  </div>
+
+  <button class="save-btn" onclick="saveEntry()">save today's log ✓</button>
+</div>
+
+<!-- HISTORY PAGE -->
+<div id="page-history" class="page">
+  <div class="page-header">
+    <h2>history</h2>
+    <p>everything you've logged so far</p>
+  </div>
+  <div id="history-content"></div>
+</div>
+
+<!-- STATS PAGE -->
+<div id="page-stats" class="page">
+  <div class="page-header">
+    <h2>averages</h2>
+    <p>patterns from your recent logs</p>
+  </div>
+  <div id="stats-content"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('log',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    log
+  </button>
+  <button class="nav-btn" onclick="showPage('history',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    history
+  </button>
+  <button class="nav-btn" onclick="showPage('stats',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    stats
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───
+let currentDate = new Date();
+let sleepQuality = '';
+let logs = JSON.parse(localStorage.getItem('dailylogs2') || '{}');
+
+// stored as 24hr strings internally, displayed as 12hr
+// { fieldId -> "HH:MM" }
+let timeValues = {};
+
+// portions per meal: { meal -> 'S'|'M'|'L' }
+let portionValues = { breakfast:'', lunch:'', snacks:'', dinner:'' };
+
+// modal state
+let modalTarget = '';
+let modalHr = 12, modalMin = 0, modalAmPm = 'AM';
+
+// ─── DATE ───
+function dateKey(d) { return d.toISOString().split('T')[0]; }
+function formatDate(d) {
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dd=new Date(d); dd.setHours(0,0,0,0);
+  const diff=(dd-today)/86400000;
+  if(diff===0) return 'Today';
+  if(diff===-1) return 'Yesterday';
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
+function updateDateLabel(){ document.getElementById('date-label').textContent=formatDate(currentDate); }
+function changeDate(delta){ currentDate.setDate(currentDate.getDate()+delta); updateDateLabel(); loadEntry(); }
+
+// ─── TIME HELPERS ───
+function to12(h24,m){ // returns "8:30 AM"
+  const h=parseInt(h24), ampm=h<12?'AM':'PM';
+  const h12=h%12||12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+function to24(h12,min,ampm){ // returns "HH:MM"
+  // 12 AM = 00:xx (midnight), 12 PM = 12:xx (noon)
+  let h=parseInt(h12);
+  if(ampm==='AM'){ if(h===12) h=0; }
+  else { if(h!==12) h+=12; }
+  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+}
+function parseStored(val){ // "HH:MM" -> {h24,m}
+  if(!val) return null;
+  const [h,m]=val.split(':');
+  return {h24:parseInt(h),m:parseInt(m)};
+}
+function calcSleepHours(bed,wake){ // both "HH:MM"
+  if(!bed||!wake) return null;
+  const [bh,bm]=bed.split(':').map(Number);
+  const [wh,wm]=wake.split(':').map(Number);
+  let bedMins=bh*60+bm, wakeMins=wh*60+wm;
+  // bedtime before 6 AM = treat as past midnight (e.g. 00:30, 01:00, 02:00)
+  // bedtime 6AM–11AM = unusual, but keep as-is
+  // if wake is before or same as bed, assume wake is next day
+  if(wakeMins<=bedMins) wakeMins+=1440;
+  // sanity check: sleep > 18hrs means something's off, try flipping
+  const diff=(wakeMins-bedMins)/60;
+  if(diff>18) return null;
+  return Math.round(diff*10)/10;
+}
+function setTimeDisplay(id, val24){ // val24 = "HH:MM" or ''
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(!val24){
+    el.textContent='tap to set'; el.classList.add('empty'); return;
+  }
+  const [h,m]=val24.split(':').map(Number);
+  el.textContent=to12(h,m); el.classList.remove('empty');
+}
+function updateSleepHours(){
+  const bed=timeValues['td-sleep'], wake=timeValues['td-wake'];
+  const hrs=calcSleepHours(bed,wake);
+  const pill=document.getElementById('sleep-hours-pill');
+  if(hrs!==null && hrs>0){
+    document.getElementById('sleep-hrs-val').textContent=hrs;
+    pill.style.display='inline-flex';
+  } else { pill.style.display='none'; }
+}
+
+// ─── MODAL ───
+function openModal(targetId, title){
+  modalTarget=targetId;
+  document.getElementById('modal-title').textContent=title;
+  // pre-fill if already set
+  const existing=timeValues[targetId];
+  if(existing){
+    const [h,m]=existing.split(':').map(Number);
+    modalAmPm=h<12?'AM':'PM';
+    modalHr=h%12||12; modalMin=m;
+  } else {
+    modalHr=12; modalMin=0; modalAmPm='AM';
+  }
+  renderModal();
+  document.getElementById('time-modal-overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('time-modal-overlay').classList.remove('open'); }
+function closeModalOutside(e){ if(e.target===document.getElementById('time-modal-overlay')) closeModal(); }
+function renderModal(){
+  document.getElementById('modal-hr').textContent=modalHr;
+  document.getElementById('modal-min').textContent=String(modalMin).padStart(2,'0');
+  document.getElementById('btn-am').classList.toggle('sel',modalAmPm==='AM');
+  document.getElementById('btn-pm').classList.toggle('sel',modalAmPm==='PM');
+}
+function spinHr(d){ modalHr=((modalHr-1+d+12)%12)+1; renderModal(); }
+function spinMin(d){ modalMin=(modalMin+d*5+60)%60; renderModal(); }
+function setAmPm(v){ modalAmPm=v; renderModal(); }
+function confirmTime(){
+  const val24=to24(modalHr,modalMin,modalAmPm);
+  timeValues[modalTarget]=val24;
+  setTimeDisplay(modalTarget,val24);
+  if(modalTarget==='td-sleep'||modalTarget==='td-wake') updateSleepHours();
+  closeModal();
+}
+
+// ─── PORTIONS ───
+const meals=['breakfast','lunch','snacks','dinner'];
+const mealIcons={'breakfast':'🌅','lunch':'☀️','snacks':'🍵','dinner':'🌙'};
+const portionHints={
+  S:'about half a plate — good for light appetite',
+  M:'a normal full plate — standard meal',
+  L:'more than a full plate — larger appetite'
+};
+function buildPortions(){
+  const wrap=document.getElementById('portions-wrap');
+  wrap.innerHTML=meals.map(m=>`
+    <div class="portion-meal" id="pm-${m}">
+      <div class="portion-meal-header">
+        <span class="portion-meal-name">${mealIcons[m]} ${m}</span>
+      </div>
+      <div class="portion-size-row">
+        <button class="p-btn size-s" onclick="selectPortion('${m}','S',this)">S · small</button>
+        <button class="p-btn size-m" onclick="selectPortion('${m}','M',this)">M · medium</button>
+        <button class="p-btn size-l" onclick="selectPortion('${m}','L',this)">L · large</button>
+      </div>
+      <div class="portion-note" id="pnote-${m}">tap a size to log your portion</div>
+    </div>
+  `).join('');
+}
+function selectPortion(meal,size,el){
+  portionValues[meal]=size;
+  const wrap=document.getElementById(`pm-${meal}`);
+  wrap.querySelectorAll('.p-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById(`pnote-${meal}`).textContent=portionHints[size];
+}
+
+// ─── SLEEP QUALITY ───
+function selectQuality(el,val){
+  sleepQuality=val;
+  document.querySelectorAll('.quality-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ─── SAVE ───
+function saveEntry(){
+  const key=dateKey(currentDate);
+  const sleepHrs=calcSleepHours(timeValues['td-sleep'],timeValues['td-wake']);
+  const entry={
+    food:{
+      breakfast:timeValues['td-breakfast']||'',
+      lunch:timeValues['td-lunch']||'',
+      snacks:timeValues['td-snacks']||'',
+      dinner:timeValues['td-dinner']||''
+    },
+    portions:{...portionValues},
+    sleep:{
+      bedtime:timeValues['td-sleep']||'',
+      wakeup:timeValues['td-wake']||'',
+      hours:sleepHrs,
+      quality:sleepQuality
+    },
+    gadget:{
+      start:timeValues['td-g-start']||'',
+      end:timeValues['td-g-end']||'',
+      location:document.getElementById('g-location').value,
+      notes:document.getElementById('g-notes').value
+    },
+    activity:{
+      type:document.getElementById('a-type').value,
+      duration:document.getElementById('a-duration').value,
+      location:document.getElementById('a-location').value,
+      notes:document.getElementById('a-notes').value
+    },
+    hobby:{
+      type:document.getElementById('h-type').value,
+      duration:document.getElementById('h-duration').value,
+      notes:document.getElementById('h-notes').value
+    }
+  };
+  logs[key]=entry;
+  localStorage.setItem('dailylogs2',JSON.stringify(logs));
+  showToast('saved ✓');
+}
+
+// ─── LOAD ENTRY ───
+function loadEntry(){
+  const key=dateKey(currentDate);
+  const e=logs[key];
+  // reset
+  timeValues={};
+  portionValues={breakfast:'',lunch:'',snacks:'',dinner:''};
+  sleepQuality='';
+  ['td-breakfast','td-lunch','td-snacks','td-dinner','td-sleep','td-wake','td-g-start','td-g-end'].forEach(id=>setTimeDisplay(id,''));
+  document.querySelectorAll('.p-btn').forEach(b=>b.classList.remove('sel'));
+  meals.forEach(m=>{ const n=document.getElementById('pnote-'+m); if(n) n.textContent='tap a size to log your portion'; });
+  document.querySelectorAll('.quality-btn').forEach(b=>b.classList.remove('selected'));
+  ['g-location','g-notes','a-type','a-duration','a-location','a-notes','h-type','h-duration','h-notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('sleep-hours-pill').style.display='none';
+
+  if(!e) return;
+
+  const tids={'td-breakfast':'breakfast','td-lunch':'lunch','td-snacks':'snacks','td-dinner':'dinner'};
+  if(e.food){ Object.entries(tids).forEach(([tid,m])=>{ if(e.food[m]){ timeValues[tid]=e.food[m]; setTimeDisplay(tid,e.food[m]); }}); }
+  if(e.portions){ meals.forEach(m=>{ if(e.portions[m]){ portionValues[m]=e.portions[m]; const pm=document.getElementById('pm-'+m); if(pm){ pm.querySelectorAll('.p-btn').forEach(b=>{ if(b.textContent.startsWith(e.portions[m])){ b.classList.add('sel'); const n=document.getElementById('pnote-'+m); if(n) n.textContent=portionHints[e.portions[m]]||''; }}); }}}); }
+  if(e.sleep){
+    if(e.sleep.bedtime){ timeValues['td-sleep']=e.sleep.bedtime; setTimeDisplay('td-sleep',e.sleep.bedtime); }
+    if(e.sleep.wakeup){ timeValues['td-wake']=e.sleep.wakeup; setTimeDisplay('td-wake',e.sleep.wakeup); }
+    updateSleepHours();
+    if(e.sleep.quality){ sleepQuality=e.sleep.quality; document.querySelectorAll('.quality-btn').forEach(b=>{ if(b.textContent.trim()===e.sleep.quality) b.classList.add('selected'); }); }
+  }
+  if(e.gadget){
+    if(e.gadget.start){ timeValues['td-g-start']=e.gadget.start; setTimeDisplay('td-g-start',e.gadget.start); }
+    if(e.gadget.end){ timeValues['td-g-end']=e.gadget.end; setTimeDisplay('td-g-end',e.gadget.end); }
+    document.getElementById('g-location').value=e.gadget.location||'';
+    document.getElementById('g-notes').value=e.gadget.notes||'';
+  }
+  if(e.activity){
+    document.getElementById('a-type').value=e.activity.type||'';
+    document.getElementById('a-duration').value=e.activity.duration||'';
+    document.getElementById('a-location').value=e.activity.location||'';
+    document.getElementById('a-notes').value=e.activity.notes||'';
+  }
+  if(e.hobby){
+    document.getElementById('h-type').value=e.hobby.type||'';
+    document.getElementById('h-duration').value=e.hobby.duration||'';
+    document.getElementById('h-notes').value=e.hobby.notes||'';
+  }
+}
+
+// ─── HISTORY ───
+function fmtTime(val24){ if(!val24) return '–'; const [h,m]=val24.split(':').map(Number); return to12(h,m); }
+function renderHistory(){
+  const container=document.getElementById('history-content');
+  const keys=Object.keys(logs).sort().reverse();
+  if(!keys.length){ container.innerHTML=`<div class="history-empty"><div class="emoji">📭</div><p>no logs yet — start tracking today!</p></div>`; return; }
+  container.innerHTML=keys.map(k=>{
+    const e=logs[k];
+    const d=new Date(k+'T12:00:00');
+    let foodStr=meals.map(m=>{
+      const t=e.food&&e.food[m]?fmtTime(e.food[m]):null;
+      const p=e.portions&&e.portions[m]?e.portions[m]:'';
+      if(!t) return null;
+      return `<strong>${mealIcons[m]} ${m}</strong> ${t}${p?` · ${p}`:''}`;
+    }).filter(Boolean).join('<br>')||'<span class="no-log">not logged</span>';
+    const sleep=e.sleep&&(e.sleep.bedtime||e.sleep.wakeup)
+      ?`${fmtTime(e.sleep.bedtime)} → ${fmtTime(e.sleep.wakeup)}${e.sleep.hours?` · <strong>${e.sleep.hours} hrs</strong>`:''}${e.sleep.quality?` · ${e.sleep.quality}`:''}`
+      :'<span class="no-log">not logged</span>';
+    const gadget=e.gadget&&(e.gadget.start||e.gadget.location)
+      ?`${fmtTime(e.gadget.start)} – ${fmtTime(e.gadget.end)}${e.gadget.location?` · 📍 ${e.gadget.location}`:''}${e.gadget.notes?`<br>${e.gadget.notes}`:''}`
+      :'<span class="no-log">not logged</span>';
+    const activity=e.activity&&e.activity.type?`${e.activity.type}${e.activity.duration?` · ${e.activity.duration}`:''}${e.activity.location?` @ ${e.activity.location}`:''}` : '<span class="no-log">not logged</span>';
+    const hobby=e.hobby&&e.hobby.type?`${e.hobby.type}${e.hobby.duration?` · ${e.hobby.duration}`:''}${e.hobby.notes?`<br><em>${e.hobby.notes}</em>`:''}`:'<span class="no-log">not logged</span>';
+    return `<div class="log-entry">
+      <div class="log-entry-date">${formatDate(d)}</div>
+      <div class="log-detail"><span class="icon">🍽</span><div class="val">${foodStr}</div></div>
+      <div class="log-detail"><span class="icon">💤</span><div class="val">${sleep}</div></div>
+      <div class="log-detail"><span class="icon">📱</span><div class="val">${gadget}</div></div>
+      <div class="log-detail"><span class="icon">🏃</span><div class="val">${activity}</div></div>
+      <div class="log-detail"><span class="icon">🎨</span><div class="val">${hobby}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── STATS ───
+function timeToMins(val24){ if(!val24) return null; const [h,m]=val24.split(':').map(Number); return h*60+m; }
+function avgMins(arr){ const v=arr.filter(x=>x!==null); if(!v.length) return null; return Math.round(v.reduce((a,b)=>a+b,0)/v.length); }
+function minsToAmPm(mins){ if(mins===null) return '–'; const h=Math.floor(mins/60)%24,m=mins%60; return to12(h,m); }
+function mostFrequent(arr){ if(!arr.length) return null; const f={}; arr.forEach(a=>{f[a]=(f[a]||0)+1;}); return Object.entries(f).sort((a,b)=>b[1]-a[1])[0][0]; }
+function calcStreak(){ const today=new Date(); today.setHours(0,0,0,0); let s=0,d=new Date(today); while(true){ if(logs[dateKey(d)]){s++;d.setDate(d.getDate()-1);}else break;} return s; }
+
+function renderStats(){
+  const container=document.getElementById('stats-content');
+  const keys=Object.keys(logs);
+  if(!keys.length){ container.innerHTML=`<div class="history-empty"><div class="emoji">📊</div><p>log a few days to see patterns!</p></div>`; return; }
+
+  const streak=calcStreak();
+  const totalDays=keys.length;
+
+  // sleep avg
+  const sleepHrsArr=keys.map(k=>logs[k].sleep&&logs[k].sleep.hours).filter(x=>x);
+  const avgSleepHrs=sleepHrsArr.length?Math.round(sleepHrsArr.reduce((a,b)=>a+b,0)/sleepHrsArr.length*10)/10:null;
+
+  // avg bedtime / wake
+  const bedtimes=keys.map(k=>{const s=logs[k].sleep; if(!s||!s.bedtime) return null; let m=timeToMins(s.bedtime); if(m<360) m+=1440; return m;}).filter(x=>x!==null);
+  const waketimes=keys.map(k=>{const s=logs[k].sleep; if(!s||!s.wakeup) return null; return timeToMins(s.wakeup);}).filter(x=>x!==null);
+  const avgBed=avgMins(bedtimes), avgWake=avgMins(waketimes);
+
+  // avg meal times
+  const mealAvgs={};
+  meals.forEach(m=>{ const arr=keys.map(k=>logs[k].food&&logs[k].food[m]?timeToMins(logs[k].food[m]):null).filter(x=>x!==null); mealAvgs[m]=avgMins(arr); });
+
+  // most common activity / hobby
+  const activities=keys.map(k=>logs[k].activity&&logs[k].activity.type).filter(Boolean);
+  const hobbies=keys.map(k=>logs[k].hobby&&logs[k].hobby.type).filter(Boolean);
+
+  // portion patterns
+  const portionCounts={S:0,M:0,L:0};
+  keys.forEach(k=>{ meals.forEach(m=>{ const p=logs[k].portions&&logs[k].portions[m]; if(p&&portionCounts[p]!==undefined) portionCounts[p]++; }); });
+  const totalPortions=portionCounts.S+portionCounts.M+portionCounts.L;
+
+  container.innerHTML=`
+    <div class="streak-card">
+      <div class="streak-num">${streak}</div>
+      <div class="streak-info"><h3>day streak 🔥</h3><p>keep going, don't break it</p></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><div class="dot" style="background:var(--lavender)"></div><h3>sleep averages</h3></div>
+      <div class="avg-row"><span class="avg-label">avg sleep</span><span class="avg-val" style="color:var(--lavender)">${avgSleepHrs!==null?avgSleepHrs+' hrs':'–'}</span></div>
+      <div class="avg-row"><span class="avg-label">avg bedtime</span><span class="avg-val">${avgBed!==null?minsToAmPm(avgBed%1440):'–'}</span></div>
+      <div class="avg-row"><span class="avg-label">avg wake up</span><span class="avg-val">${avgWake!==null?minsToAmPm(avgWake):'–'}</span></div>
+      ${avgSleepHrs!==null?`<div style="margin-top:10px;padding:10px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--muted)">
+        ${avgSleepHrs>=7&&avgSleepHrs<=9?'✅ great — you\'re hitting the 7–9 hr target':avgSleepHrs<7?'⚠️ a bit low — aim for 7+ hrs if you can':'😴 sleeping a lot — check if you feel rested'}
+      </div>`:''}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><div class="dot" style="background:var(--coral)"></div><h3>avg meal timings</h3></div>
+      ${meals.map(m=>`<div class="avg-row"><span class="avg-label">${mealIcons[m]} ${m}</span><span class="avg-val">${mealAvgs[m]!==null?minsToAmPm(mealAvgs[m]):'–'}</span></div>`).join('')}
+    </div>
+
+    ${totalPortions>0?`<div class="section-card">
+      <div class="section-title"><div class="dot" style="background:var(--gold)"></div><h3>portion breakdown</h3></div>
+      ${['S','M','L'].map(s=>{const pct=totalPortions?Math.round(portionCounts[s]/totalPortions*100):0; return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${s==='S'?'Small':s==='M'?'Medium':'Large'}</span><span style="color:var(--muted)">${portionCounts[s]} meals · ${pct}%</span></div><div style="background:var(--card2);border-radius:6px;height:6px"><div style="background:var(--gold);height:6px;border-radius:6px;width:${pct}%"></div></div></div>`; }).join('')}
+    </div>`:''}
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">days logged</div>
+        <div class="stat-val" style="color:var(--sky)">${totalDays}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">fav activity</div>
+        <div class="stat-val" style="color:var(--sage);font-size:15px;margin-top:4px">${mostFrequent(activities)||'–'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">fav hobby</div>
+        <div class="stat-val" style="color:var(--gold);font-size:15px;margin-top:4px">${mostFrequent(hobbies)||'–'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">sleep logs</div>
+        <div class="stat-val" style="color:var(--lavender)">${sleepHrsArr.length}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ─── NAV ───
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='history') renderHistory();
+  if(id==='stats') renderStats();
+}
+
+// ─── TOAST ───
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+
+// ─── INIT ───
+buildPortions();
+updateDateLabel();
+loadEntry();
+</script>
+</body>
+</html>
